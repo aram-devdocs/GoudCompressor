@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "name": "RepeatedItem",
+      "description": "This is a repeated item that might compress very well.",
+      "value": 12345,
+      "tags": ["repeat", "test", "example"]
+    },
+    {
+      "name": "RepeatedItem",
+      "description": "This is a repeated item that might compress very well.",
+      "value": 12345,
+      "tags": ["repeat", "test", "example"]
+    },
+    {
+      "name": "RepeatedItem",
+      "description": "This is a repeated item that might compress very well.",
+      "value": 12345,
+      "tags": ["repeat", "test", "example"]
+    }
+  ]
+}

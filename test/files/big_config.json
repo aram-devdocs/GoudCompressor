@@ -1,0 +1,26 @@
+{
+  "settings": {
+    "featureToggleA": true,
+    "featureToggleB": false,
+    "maxItems": 500,
+    "defaultUser": "john_doe",
+    "allowedCountries": ["US", "UK", "CA", "AU", "DE"],
+    "nestedConfig": {
+      "nestedKeyA": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "nestedKeyB": "Curabitur at vulputate est. Cras sed suscipit elit."
+    }
+  },
+  "paths": {
+    "home": "/user/home",
+    "logs": "/var/logs",
+    "config": "/etc/config",
+    "cache": "/tmp/cache",
+    "backup": "/mnt/backup/storage"
+  },
+  "dataList": [
+    { "id": 1, "name": "Alpha", "active": true },
+    { "id": 2, "name": "Bravo", "active": false },
+    { "id": 3, "name": "Charlie", "active": true },
+    { "id": 100, "name": "Zulu", "active": false }
+  ]
+}

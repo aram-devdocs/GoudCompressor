@@ -1,123 +1,110 @@
 use wasm_bindgen::prelude::*;
-use std::collections::HashMap;
 
-const CONTROL_WORD: u8 = 0xFF;
-const REPEAT_MARKER: u8 = 0xFE;
-const DICT_MARKER: u8 = 0xFD;
+// You might tune these constants:
+const WINDOW_SIZE: usize = 4096;   // max distance back
+const MIN_MATCH_LEN: usize = 4;    // only encode matches >= this length
+const MAX_MATCH_LEN: usize = 255;  // simplistic limit for this example
 
 #[wasm_bindgen]
 pub fn compress(input: &[u8]) -> Vec<u8> {
-    let mut result = Vec::with_capacity(input.len());
-    let mut dictionary: HashMap<Vec<u8>, u8> = HashMap::new();
-    let mut dict_counter: u8 = 0;
-    let mut word = Vec::new();
+    let mut result = Vec::with_capacity(input.len() / 2); // guess for capacity
     let mut i = 0;
 
     while i < input.len() {
-        // Handle repeated characters
-        let current = input[i];
-        let mut count = 1;
-        while i + count < input.len() && input[i + count] == current {
-            count += 1;
-        }
+        // Look for the best match in the sliding window.
+        let (best_offset, best_len) = find_longest_match(input, i);
 
-        if count > 4 {
-            result.push(CONTROL_WORD);
-            result.push(REPEAT_MARKER);
-            result.push(current);
-            result.push(count as u8);
-            i += count;
-            continue;
-        }
+        // If we found a decent match, emit it as (token=1, length, distance).
+        if best_len >= MIN_MATCH_LEN {
+            result.push(1); // "1" means "backreference"
+            result.push(best_len as u8);
+            // Distance is how far back we have to go. E.g., offset=1 means "repeat last byte"
+            let dist = (best_offset & 0xFFFF) as u16;
+            // store distance as two bytes (little-endian)
+            result.push(dist as u8);
+            result.push((dist >> 8) as u8);
 
-        // Collect word
-        if input[i].is_ascii_alphabetic() || input[i] == b'_' {
-            word.push(input[i]);
+            i += best_len;
         } else {
-            // Process collected word
-            if word.len() > 3 {
-                if let Some(&code) = dictionary.get(&word) {
-                    result.push(CONTROL_WORD);
-                    result.push(DICT_MARKER);
-                    result.push(code);
-                } else if dict_counter < 250 {
-                    dictionary.insert(word.clone(), dict_counter);
-                    result.push(CONTROL_WORD);
-                    result.push(DICT_MARKER);
-                    result.push(dict_counter);
-                    result.extend_from_slice(&word);
-                    result.push(0);
-                    dict_counter += 1;
-                } else {
-                    result.extend_from_slice(&word);
-                }
-            } else {
-                result.extend_from_slice(&word);
-            }
-            word.clear();
+            // Otherwise, emit a literal (token=0, then the byte).
+            result.push(0);
             result.push(input[i]);
-        }
-        i += 1;
-    }
-
-    // Process last word if any
-    if !word.is_empty() {
-        if word.len() > 3 {
-            if let Some(&code) = dictionary.get(&word) {
-                result.push(CONTROL_WORD);
-                result.push(DICT_MARKER);
-                result.push(code);
-            } else {
-                result.extend_from_slice(&word);
-            }
-        } else {
-            result.extend_from_slice(&word);
+            i += 1;
         }
     }
 
     result
 }
 
+/// Finds the longest match within [i - WINDOW_SIZE, i) that matches forward from `i`.
+/// Returns (offset, length).
+fn find_longest_match(data: &[u8], i: usize) -> (usize, usize) {
+    let window_start = i.saturating_sub(WINDOW_SIZE);
+
+    let mut best_offset = 0;
+    let mut best_len = 0;
+
+    // naive search: check each possible start in [window_start..i]
+    // In a real implementation, you'd do something more optimal (hash chain, etc.)
+    for candidate_start in window_start..i {
+        let mut length = 0;
+        while i + length < data.len()
+            && candidate_start + length < i
+            && data[candidate_start + length] == data[i + length]
+            && length < MAX_MATCH_LEN
+        {
+            length += 1;
+        }
+        if length > best_len {
+            best_len = length;
+            best_offset = i - candidate_start;
+        }
+        // an optional small optimization: break early if we find a perfect match
+        if best_len == MAX_MATCH_LEN {
+            break;
+        }
+    }
+
+    (best_offset, best_len)
+}
+
 #[wasm_bindgen]
 pub fn decompress(input: &[u8]) -> Vec<u8> {
-    let mut result = Vec::with_capacity(input.len());
-    let mut dictionary: HashMap<u8, Vec<u8>> = HashMap::new();
+    let mut result = Vec::with_capacity(input.len() * 2); // rough guess
     let mut i = 0;
 
     while i < input.len() {
-        if input[i] == CONTROL_WORD && i + 1 < input.len() {
-            match input[i + 1] {
-                REPEAT_MARKER => {
-                    let chr = input[i + 2];
-                    let count = input[i + 3] as usize;
-                    result.extend(std::iter::repeat(chr).take(count));
-                    i += 4;
-                }
-                DICT_MARKER => {
-                    let code = input[i + 2];
-                    if let Some(word) = dictionary.get(&code) {
-                        result.extend_from_slice(word);
-                        i += 3;
-                    } else {
-                        i += 3;
-                        let mut word = Vec::new();
-                        while i < input.len() && input[i] != 0 {
-                            word.push(input[i]);
-                            i += 1;
-                        }
-                        dictionary.insert(code, word.clone());
-                        result.extend_from_slice(&word);
-                        i += 1;
-                    }
-                }
-                _ => {
-                    result.push(input[i]);
-                    i += 1;
-                }
+        // Check the token byte.
+        if input[i] == 0 {
+            // Literal
+            i += 1; // consume token byte
+            if i < input.len() {
+                result.push(input[i]);
+                i += 1;
             }
         } else {
-            result.push(input[i]);
+            // Backreference
+            i += 1; // consume token byte
+            // Next byte = length
+            let length = input[i] as usize;
             i += 1;
+            // Next two bytes = distance (little endian)
+            let dist_lo = input[i] as u16;
+            let dist_hi = input[i + 1] as u16;
+            let distance = (dist_hi << 8) | dist_lo;
+            i += 2;
+
+            // Copy `length` bytes from `distance` bytes behind the current write position
+            let start = result.len().saturating_sub(distance as usize);
+            for j in 0..length {
+                if start + j < result.len() {
+                    result.push(result[start + j]);
+                } else {
+                    // If distance is out of bounds, handle carefully
+                    // (in well-formed data, ideally shouldn’t happen)
+                    result.push(0);
+                }
+            }
         }
     }
 

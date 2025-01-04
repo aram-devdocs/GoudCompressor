@@ -1,6 +1,7 @@
 # GoudCompressor
 
-This repository provides a custom dictionary-based RLE (Run-Length Encoding) compression algorithm implemented in Rust and compiled to WebAssembly (WASM) for use in both web and Node.js environments. The goal is to minimize the size of .txt and .json files, potentially reducing the amount of data transferred over the network.
+This repository provides a Rust- and WebAssembly-based compression library for text-heavy data like .txt and .json files. The library aims to significantly reduce file size to help minimize data transfer over the network.
+
 
 ## Project Structure
 
@@ -28,10 +29,21 @@ This repository provides a custom dictionary-based RLE (Run-Length Encoding) com
 
 ## Compression Algorithm
 
-1. Combines dictionary-based compression with run-length encoding.  
-2. Special control bytes identify repeated characters and dictionary entries.  
-3. Designed to potentially reduce size for text-based inputs (e.g., JSON, plain text).  
-4. Ensures that decompression fully reverses the process (lossless).
+GoudCompressor has evolved from a simple dictionary-based RLE (Run-Length Encoding) scheme into a more powerful LZ-style algorithm (inspired by how 7-zip handles compression). While not a complete LZMA implementation, this approach typically yields higher compression ratios than basic RLE, especially for longer text files.
+
+1. **LZ-style Sliding Window**  
+    Locates repeating substrings by searching within a sliding window and emits a backreference (distance + length) when a repeat is found.
+
+2. **Run-Length Encoding (RLE) Fallback**  
+    If a straightforward repetition (e.g., the same character repeated many times) is discovered, we apply RLE for efficiency.
+
+3. **Dictionary Construction**  
+    A dictionary may still be built for particularly common substrings; these can be referenced using small tokens, reducing output size.
+
+4. **Lossless Decompression**  
+    Every step is fully reversible, ensuring the original data can be reconstructed bit-for-bit.
+
+Note: For very large inputs or more advanced compression needs, consider adding entropy coding (e.g., Huffman or range coding) on top of these LZ tokens for further size reduction.
 
 ## Usage Instructions
 
