@@ -1,19 +1,21 @@
 use crate::shared::token::Token;
 use std::collections::HashMap;
 
-// Simplified node representation
+#[derive(Debug)]
+pub struct HuffmanTree {
+    pub root: HuffmanNode,
+}
+
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum HuffmanNode {
     Leaf(Token),
     Internal(Box<HuffmanNode>, Box<HuffmanNode>),
 }
 
-// Simplified tree struct
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct HuffmanTree {
-    pub root: HuffmanNode,
+impl HuffmanTree {
+    pub fn serialize(&self) -> Vec<u8> {
+        vec![0xFF]  // Placeholder implementation
+    }
 }
 
 // Build frequencies of each token and create a tree
@@ -85,12 +87,6 @@ pub fn encode_tokens(tokens: &[Token], _tree: &HuffmanTree) -> Vec<u8> {
 // Serialize the Huffman tree into bytes (placeholder).
 // In practice, you'd do a depth-first traversal and record structure + tokens.
 impl HuffmanTree {
-    pub fn serialize(&self) -> Vec<u8> {
-        // Minimal placeholder: store a single byte “0xFF” to pretend
-        // we have a tree. A real implementation would store entire node structure.
-        vec![0xFF]
-    }
-
     /// A simple traversal method that reads the tree structure,
     /// thereby removing the 'fields never read' warnings.
     #[allow(dead_code)]

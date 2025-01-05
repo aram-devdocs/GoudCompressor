@@ -1,19 +1,20 @@
-pub(crate) mod matcher;
 pub(crate) mod huffman;
+pub(crate) mod matcher;
 mod strategies;
 
-use crate::constants::{UNCOMPRESSED_FLAG, MIN_FILE_SIZE};
-use crate::utils::{get_log_level, log};
+use crate::constants::{MIN_FILE_SIZE, UNCOMPRESSED_FLAG};
 use crate::shared::compression::CompressionResult;
+use crate::utils::{get_log_level, log};
 use strategies::try_all_strategies;
 use wasm_bindgen::JsValue;
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
-    
-    if input.len() < MIN_FILE_SIZE {
+
+    // Early exits for small files or high entropy data
+    if input.len() < MIN_FILE_SIZE || !is_compressible(&input[..input.len().min(1024)]) {
         if log_level == "debug" {
-            log("File too small, storing uncompressed");
+            log("File too small or high entropy, storing uncompressed");
         }
         let mut output = Vec::with_capacity(input.len() + 1);
         output.push(UNCOMPRESSED_FLAG);
@@ -49,7 +50,7 @@ fn is_compressible(sample: &[u8]) -> bool {
     for &byte in sample {
         freqs[byte as usize] += 1;
     }
-    
+
     let mut entropy = 0.0;
     let sample_len = sample.len() as f64;
     for &freq in freqs.iter() {
@@ -58,7 +59,7 @@ fn is_compressible(sample: &[u8]) -> bool {
             entropy -= p * p.log2();
         }
     }
-    
+
     // If entropy is high (close to 8), data is likely random
     entropy < 7.0
 }
