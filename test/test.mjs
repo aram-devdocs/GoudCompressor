@@ -9,6 +9,16 @@ async function runTests(logLevel = "none", verbose = false, files = "all", save 
   const wasmBuffer = fs.readFileSync(wasmPath);
   await init(wasmBuffer);
 
+  // Capture debug logs
+  let debugLogs = [];
+  const originalLog = console.log;
+  if (logLevel === "debug") {
+    console.log = (...args) => {
+      debugLogs.push(args.join(' '));
+      originalLog.apply(console, args);
+    };
+  }
+
   // List of test files we want to run compression on
   const allFilesToTest = [
     "test.txt",
@@ -163,6 +173,18 @@ async function runTests(logLevel = "none", verbose = false, files = "all", save 
     const outputPath = path.resolve(`results/results-${dateTime}.json`);
     fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
     console.log(`Results saved to ${outputPath}`);
+
+    // Save debug logs if available
+    if (logLevel === "debug" && debugLogs.length > 0) {
+      const debugOutputPath = path.resolve(`results/debug-${dateTime}.log`);
+      fs.writeFileSync(debugOutputPath, debugLogs.join('\n'));
+      console.log(`Debug logs saved to ${debugOutputPath}`);
+    }
+  }
+
+  // Restore original console.log
+  if (logLevel === "debug") {
+    console.log = originalLog;
   }
 }
 
