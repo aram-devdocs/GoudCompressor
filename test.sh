@@ -5,8 +5,9 @@ set -e
 
 # Function to display usage instructions
 usage() {
-  echo "Usage: $0 [--log <level>]"
+  echo "Usage: $0 [--log <level>] [--verbose]"
   echo "  --log <level>  Set the log level (none, error, info, debug)"
+  echo "  --verbose      Enable detailed performance logging"
   exit 1
 }
 
@@ -17,13 +18,22 @@ fi
 
 # Check for log level argument
 LOG_LEVEL="none"
-if [[ "$1" == "--log" ]]; then
-  if [[ -n "$2" ]]; then
-    LOG_LEVEL="$2"
-  else
-    usage
-  fi
-fi
+VERBOSE="false"
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --log)
+      LOG_LEVEL="$2"
+      shift
+      ;;
+    --verbose)
+      VERBOSE="true"
+      ;;
+    *)
+      usage
+      ;;
+  esac
+  shift
+done
 
 # Run the build script
 ./build.sh
@@ -32,4 +42,4 @@ fi
 cd test
 
 # Run the test script with Node.js
-node test.mjs --log "$LOG_LEVEL"
+node test.mjs --log "$LOG_LEVEL" --verbose "$VERBOSE"

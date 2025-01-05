@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import init, { compress, decompress } from "../ts-wrapper/goud_compressor.js";
 
-async function runTests(logLevel = "none") {
+async function runTests(logLevel = "none", verbose = false) {
   // Initialize the WASM module
   const wasmPath = path.resolve("../ts-wrapper/goud_compressor_bg.wasm");
   const wasmBuffer = fs.readFileSync(wasmPath);
@@ -33,12 +33,17 @@ async function runTests(logLevel = "none") {
     console.log(`\n=== Testing file: ${fileName} ===`);
     console.log("Input size:", inputArray.length);
 
+    // Performance logging
+    const startTime = performance.now();
+
     // Compress
     const compressed = compress(inputArray, { logLevel });
+    const compressTime = performance.now();
     console.log("Compressed size:", compressed.length);
 
     // Decompress
     const decompressed = decompress(compressed, { logLevel });
+    const decompressTime = performance.now();
     console.log("Decompressed size:", decompressed.length);
 
     // Check if compressed is smaller
@@ -75,15 +80,23 @@ async function runTests(logLevel = "none") {
         2
       )}% smaller than the original.`
     );
+
+    // Performance logging
+    if (verbose) {
+      console.log(`Compression time: ${(compressTime - startTime).toFixed(2)} ms`);
+      console.log(`Decompression time: ${(decompressTime - compressTime).toFixed(2)} ms`);
+    }
   }
 }
 
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
-  console.log("Usage: node test.mjs [--log <level>]");
+  console.log("Usage: node test.mjs [--log <level>] [--verbose]");
   console.log("  --log <level>  Set the log level (none, error, info, debug)");
+  console.log("  --verbose      Enable detailed performance logging");
   process.exit(0);
 }
 
-const logLevel = args[0] === "--log" ? args[1] : "none";
-runTests(logLevel);
+const logLevel = args.includes("--log") ? args[args.indexOf("--log") + 1] : "none";
+const verbose = args.includes("--verbose");
+runTests(logLevel, verbose);

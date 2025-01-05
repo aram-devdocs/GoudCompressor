@@ -32,6 +32,7 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
     let mut result = Vec::with_capacity(input.len() / 2); // guess for capacity
     let mut i = 0;
+    let mut steps = 0;
 
     while i < input.len() {
         // Look for the best match in the sliding window.
@@ -55,6 +56,8 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
             i += 1;
         };
 
+        steps += 1;
+
         if log_level == "debug" && i % 100 == 0 {
             log(&format!("Compressing byte {}: {}", i, input[i - 1]));
         }
@@ -62,6 +65,10 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
 
     if log_level == "info" || log_level == "debug" {
         log(&format!("Compression complete. Original size: {}, Compressed size: {}", input.len(), result.len()));
+    }
+
+    if log_level == "debug" {
+        log(&format!("Compression steps: {}", steps));
     }
 
     result
@@ -104,6 +111,7 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
     let mut result = Vec::with_capacity(input.len() * 2); // rough guess
     let mut i = 0;
+    let mut steps = 0;
 
     while i < input.len() {
         // Check the token byte.
@@ -139,6 +147,8 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
             }
         }
 
+        steps += 1;
+
         if log_level == "debug" && i % 100 == 0 {
             log(&format!("Decompressing byte {}: {}", i, input[i - 1]));
         }
@@ -146,6 +156,10 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
 
     if log_level == "info" || log_level == "debug" {
         log(&format!("Decompression complete. Compressed size: {}, Decompressed size: {}", input.len(), result.len()));
+    }
+
+    if log_level == "debug" {
+        log(&format!("Decompression steps: {}", steps));
     }
 
     result
