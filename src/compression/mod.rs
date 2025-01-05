@@ -2,7 +2,10 @@ pub(crate) mod huffman;
 pub(crate) mod matcher;
 mod strategies;
 
-use crate::constants::{COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG, UNCOMPRESSED_FLAG};
+use crate::constants::{
+    ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG,
+    UNCOMPRESSED_FLAG,
+};
 use crate::shared::compression::CompressionResult;
 use crate::utils::{get_log_level, log};
 use strategies::{compress_delta, compress_lz, compress_rle, try_all_strategies};
@@ -28,9 +31,9 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     }
 
     let result = match algorithm.as_str() {
-        "rle" => CompressionResult::Compressed(compress_rle(input), RLE_FLAG),
-        "delta" => CompressionResult::Compressed(compress_delta(input), DELTA_FLAG),
-        "lz" => CompressionResult::Compressed(compress_lz(input), COMPRESSED_FLAG),
+        ALGO_RLE => CompressionResult::Compressed(compress_rle(input), RLE_FLAG),
+        ALGO_DELTA => CompressionResult::Compressed(compress_delta(input), DELTA_FLAG),
+        ALGO_LZ_HUFFMAN => CompressionResult::Compressed(compress_lz(input), COMPRESSED_FLAG),
         _ => try_all_strategies(input),
     };
 

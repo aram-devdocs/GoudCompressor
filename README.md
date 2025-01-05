@@ -9,7 +9,15 @@ This project is a proof-of-concept and may not be suitable for all use cases. Th
 ## Project Structure
 
 - **/src**  
-  Contains the Rust source code with the proprietary compression and decompression logic in lib.rs.
+  Contains the Rust source code with the proprietary compression and decompression logic.
+
+  - **/decompression**  
+    Contains modules for different decompression algorithms:
+    - `mod.rs`: Main decompression module.
+    - `huff_decode.rs`: Huffman decoding logic.
+    - `lz_huffman.rs`: LZ-Huffman decompression logic.
+    - `rle.rs`: Run-Length Encoding decompression logic.
+    - `delta.rs`: Delta decompression logic.
 
 - **/ts-wrapper**  
   Generated TypeScript bindings and the JavaScript glue code (goud_compressor.js) for interacting with the WASM module.
@@ -48,6 +56,13 @@ GoudCompressor uses a combination of compression strategies to achieve optimal r
 
 The library automatically selects the best compression strategy based on the input data, but you can also specify a particular algorithm using the `algorithm` option.
 
+## Available Compression Algorithms
+
+- `ALGO_UNCOMPRESSED`: Uncompressed
+- `ALGO_LZ_HUFFMAN`: LZ+Huffman
+- `ALGO_RLE`: RLE
+- `ALGO_DELTA`: Delta
+
 ## Usage Instructions
 
 1. Run the build script:  
@@ -70,6 +85,16 @@ The library automatically selects the best compression strategy based on the inp
 3. In your own Node.js or web project, import the resulting JavaScript module from /ts-wrapper (e.g., goud_compressor.js). Use the exported functions:
    - `compress(input: Uint8Array, options: { logLevel: string, algorithm: string }) => Uint8Array`
    - `decompress(input: Uint8Array, options: { logLevel: string }) => Uint8Array`
+
+To specify the compression algorithm, use the `algorithm` option in the `options` object:
+
+```javascript
+const options = {
+    algorithm: ALGO_LZ_HUFFMAN // or ALGO_RLE, ALGO_DELTA, ALGO_UNCOMPRESSED
+};
+const compressedData = compress(inputData, options);
+const decompressedData = decompress(compressedData, options);
+```
 
 ## License
 
