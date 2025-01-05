@@ -1,48 +1,64 @@
-use wasm_bindgen::JsValue;
-mod huffman;
-mod lz_tokenize;
-mod matcher;
-use crate::compression::huffman::{build_huffman_tree, encode_tokens};
-use crate::compression::lz_tokenize::lz_tokenize;
-use crate::constants::{COMPRESSED_FLAG, UNCOMPRESSED_FLAG};
+pub(crate) mod matcher;
+pub(crate) mod huffman;
+mod strategies;
+
+use crate::constants::{UNCOMPRESSED_FLAG, MIN_FILE_SIZE};
 use crate::utils::{get_log_level, log};
+use crate::shared::compression::CompressionResult;
+use strategies::try_all_strategies;
+use wasm_bindgen::JsValue;
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
-
-    // 1. Convert input bytes into tokens via LZ logic
-    let tokens = lz_tokenize(input);
-
-    // 2. Build a Huffman tree for the tokens
-    let tree = build_huffman_tree(&tokens);
-
-    // 3. Encode the tokens using the Huffman tree
-    let encoded_tokens = encode_tokens(&tokens, &tree);
-
-    // 4. Construct final compressed buffer
-    //    - We'll store the Huffman tree, then the encoded bits
-    let mut compressed_data = tree.serialize(); // <-- Tree for decompression
-    compressed_data.extend_from_slice(&encoded_tokens); // <-- Encoded token stream
-
-    // 5. Check if compressed is actually smaller
-    //    - +1 for the “compressed or not” flag
-    if compressed_data.len() + 1 >= input.len() {
-        // Fallback: store data uncompressed
-        let mut result = Vec::with_capacity(input.len() + 1);
-        result.push(UNCOMPRESSED_FLAG);
-        result.extend_from_slice(input);
-        if log_level == "info" || log_level == "debug" {
-            log("Compressed result was bigger; storing uncompressed data");
+    
+    if input.len() < MIN_FILE_SIZE {
+        if log_level == "debug" {
+            log("File too small, storing uncompressed");
         }
-        result
-    } else {
-        // Store data compressed
-        let mut result = Vec::with_capacity(compressed_data.len() + 1);
-        result.push(COMPRESSED_FLAG);
-        result.extend_from_slice(&compressed_data);
-        if log_level == "info" || log_level == "debug" {
-            log("Data successfully compressed with Huffman + LZ");
-        }
-        result
+        let mut output = Vec::with_capacity(input.len() + 1);
+        output.push(UNCOMPRESSED_FLAG);
+        output.extend_from_slice(input);
+        return output;
     }
+
+    match try_all_strategies(input) {
+        CompressionResult::Compressed(data, flag) => {
+            if log_level == "debug" {
+                log(&format!("Using compression method: {:02X}", flag));
+            }
+            let mut output = Vec::with_capacity(data.len() + 1);
+            output.push(flag);
+            output.extend(data);
+            output
+        }
+        CompressionResult::Uncompressed(data) => {
+            if log_level == "debug" {
+                log("No effective compression found, storing uncompressed");
+            }
+            let mut output = Vec::with_capacity(data.len() + 1);
+            output.push(UNCOMPRESSED_FLAG);
+            output.extend(data);
+            output
+        }
+    }
+}
+
+fn is_compressible(sample: &[u8]) -> bool {
+    // Simple entropy calculation
+    let mut freqs = [0u32; 256];
+    for &byte in sample {
+        freqs[byte as usize] += 1;
+    }
+    
+    let mut entropy = 0.0;
+    let sample_len = sample.len() as f64;
+    for &freq in freqs.iter() {
+        if freq > 0 {
+            let p = freq as f64 / sample_len;
+            entropy -= p * p.log2();
+        }
+    }
+    
+    // If entropy is high (close to 8), data is likely random
+    entropy < 7.0
 }
