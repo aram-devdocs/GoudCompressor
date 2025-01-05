@@ -16,6 +16,7 @@ pub use rle::compress_rle;
 
 pub const CHUNK_SIZE: usize = 32 * 1024; // 32KB chunks
 const CHAIN_THRESHOLD: f64 = 0.90; // If compression ratio > 90%, try chaining
+const MAX_METHODS: usize = 3; // Maximum number of compression methods to apply
 
 type CompressionFn = fn(&[u8], &str, bool) -> Vec<u8>;
 
@@ -81,9 +82,10 @@ fn compress_chunk(chunk: &[u8], log_level: &str, verbose: bool) -> CompressedChu
         (compress_bwt as CompressionFn, BWT_FLAG),
     ];
 
-    loop {
+    while methods.len() < MAX_METHODS {
         let best_attempt = attempts
             .iter()
+            .filter(|(_, flag)| !methods.contains(flag))
             .map(|(compress_fn, flag)| {
                 let compressed = compress_fn(&current_data, log_level, verbose);
                 (compressed.len(), compressed, *flag)
@@ -109,10 +111,6 @@ fn compress_chunk(chunk: &[u8], log_level: &str, verbose: bool) -> CompressedChu
 
         methods.push(best_attempt.2);
         current_data = best_attempt.1;
-
-        if methods.len() >= 3 {
-            break;
-        }
     }
 
     CompressedChunk {
