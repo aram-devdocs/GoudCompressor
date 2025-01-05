@@ -1,6 +1,5 @@
 use crate::constants::{
-    ALGO_BWT, ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_UNCOMPRESSED, BWT_FLAG, CHUNKED_FLAG,
-    COMPRESSED_FLAG, DELTA_FLAG, LOG_LEVEL_DEBUG, RLE_FLAG, UNCOMPRESSED_FLAG,
+    ALGO_BWT, ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_UNCOMPRESSED, BWT_FLAG, CHUNKED_FLAG, COMPRESSED_FLAG, DELTA_FLAG, LOG_LEVEL_DEBUG, LOG_LEVEL_PERFORMANCE, RLE_FLAG, UNCOMPRESSED_FLAG
 };
 mod bwt;
 mod delta;
@@ -16,6 +15,11 @@ use wasm_bindgen::JsValue;
 
 pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
+    let verbose = js_sys::Reflect::get(options, &JsValue::from_str("verbose"))
+        .ok()
+        .and_then(|val| val.as_bool())
+        .unwrap_or(false);
+
     if input.is_empty() {
         return Vec::new();
     }
@@ -29,53 +33,58 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
                 LOG_LEVEL_DEBUG,
                 &log_level,
                 &format!("Decompressing: {}", ALGO_UNCOMPRESSED),
+                verbose,
             );
             data.to_vec()
         }
         CHUNKED_FLAG => {
-            log_message(LOG_LEVEL_DEBUG, &log_level, "Decompressing: Chunked");
-            decompress_chunked(data)
+            log_message(LOG_LEVEL_DEBUG, &log_level, "Decompressing: Chunked", verbose);
+            decompress_chunked(data, &log_level, verbose)
         }
         COMPRESSED_FLAG => {
             log_message(
                 LOG_LEVEL_DEBUG,
                 &log_level,
                 &format!("Decompressing: {}", ALGO_LZ_HUFFMAN),
+                verbose,
             );
-            decompress_lz_huffman(data)
+            decompress_lz_huffman(data, &log_level, verbose)
         }
         RLE_FLAG => {
             log_message(
                 LOG_LEVEL_DEBUG,
                 &log_level,
                 &format!("Decompressing: {}", ALGO_RLE),
+                verbose,
             );
-            decompress_rle(data)
+            decompress_rle(data, &log_level, verbose)
         }
         DELTA_FLAG => {
             log_message(
                 LOG_LEVEL_DEBUG,
                 &log_level,
                 &format!("Decompressing: {}", ALGO_DELTA),
+                verbose,
             );
-            decompress_delta(data)
+            decompress_delta(data, &log_level, verbose)
         }
         BWT_FLAG => {
             log_message(
                 LOG_LEVEL_DEBUG,
                 &log_level,
                 &format!("Decompressing: {}", ALGO_BWT),
+                verbose,
             );
-            decompress_bwt(data)
+            decompress_bwt(data, &log_level, verbose)
         }
         _ => {
-            log_message(LOG_LEVEL_DEBUG, &log_level, "Unknown compression flag");
+            log_message(LOG_LEVEL_DEBUG, &log_level, "Unknown compression flag", verbose);
             input.to_vec()
         }
     }
 }
 
-pub fn decompress_chunked(data: &[u8]) -> Vec<u8> {
+pub fn decompress_chunked(data: &[u8], log_level: &str, verbose: bool) -> Vec<u8> {
     if data.len() < 8 {
         return Vec::new();
     }
@@ -117,16 +126,27 @@ pub fn decompress_chunked(data: &[u8]) -> Vec<u8> {
         // Apply decompression methods in reverse order
         for &method in methods.iter().rev() {
             chunk_data = match method {
-                COMPRESSED_FLAG => decompress_lz_huffman(&chunk_data),
-                RLE_FLAG => decompress_rle(&chunk_data),
-                DELTA_FLAG => decompress_delta(&chunk_data),
-                BWT_FLAG => decompress_bwt(&chunk_data),
+                COMPRESSED_FLAG => decompress_lz_huffman(&chunk_data, log_level, verbose),
+                RLE_FLAG => decompress_rle(&chunk_data, log_level, verbose),
+                DELTA_FLAG => decompress_delta(&chunk_data, log_level, verbose),
+                BWT_FLAG => decompress_bwt(&chunk_data, log_level, verbose),
                 _ => chunk_data,
             };
         }
 
         result.extend(chunk_data);
     }
+
+    log_message(
+        LOG_LEVEL_PERFORMANCE,
+        log_level,
+        &format!(
+            "Chunked decompression complete: original_size={}, decompressed_size={}",
+            data.len(),
+            result.len()
+        ),
+        verbose,
+    );
 
     result
 }

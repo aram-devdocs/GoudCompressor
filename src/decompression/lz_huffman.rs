@@ -1,7 +1,15 @@
+use crate::constants::{LOG_LEVEL_INFO, LOG_LEVEL_PERFORMANCE, WINDOW_SIZE};
 use crate::decompression::huff_decode::decode_huffman;
-use crate::constants::WINDOW_SIZE;
+use crate::utils::log_message;
 
-pub fn decompress_lz_huffman(data: &[u8]) -> Vec<u8> {
+pub fn decompress_lz_huffman(data: &[u8], log_level: &str, verbose: bool) -> Vec<u8> {
+    log_message(
+        LOG_LEVEL_INFO,
+        log_level,
+        "Starting LZ+Huffman decompression",
+        verbose,
+    );
+
     // 1. Decode the Huffman tree
     //    In our placeholder logic, the tree is just 1 byte (0xFF).
     //    Then the rest is the token stream.
@@ -9,7 +17,7 @@ pub fn decompress_lz_huffman(data: &[u8]) -> Vec<u8> {
     let token_data = &data[1..];
 
     // 2. Decode tokens from the token stream
-    let tokens = decode_huffman(token_data);
+    let tokens = decode_huffman(token_data, log_level, verbose);
 
     // 3. Reconstruct original bytes from tokens
     let mut output = Vec::with_capacity(WINDOW_SIZE);
@@ -35,6 +43,17 @@ pub fn decompress_lz_huffman(data: &[u8]) -> Vec<u8> {
             }
         }
     }
+
+    log_message(
+        LOG_LEVEL_PERFORMANCE,
+        log_level,
+        &format!(
+            "LZ+Huffman decompression complete: original_size={}, decompressed_size={}",
+            data.len(),
+            output.len()
+        ),
+        verbose,
+    );
 
     output
 }

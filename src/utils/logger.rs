@@ -15,7 +15,7 @@ extern "C" {
     pub fn log_many(a: &str, b: &str);
 }
 
-pub fn log_message(level: &str, current_level: &str, message: &str) {
+pub fn log_message(level: &str, current_level: &str, message: &str, verbose: bool) {
     let levels = vec![
         LOG_LEVEL_NONE,
         LOG_LEVEL_ERROR,
@@ -27,6 +27,8 @@ pub fn log_message(level: &str, current_level: &str, message: &str) {
     let level_index = levels.iter().position(|&l| l == level).unwrap_or(0);
 
     if level_index <= current_index {
-        log(&format!("[{}] {}", level.to_uppercase(), message));
+        if verbose || level != LOG_LEVEL_PERFORMANCE {
+            log(&format!("[{}] {}", level.to_uppercase(), message));
+        }
     }
 }

@@ -1,4 +1,14 @@
-pub fn decompress_rle(data: &[u8]) -> Vec<u8> {
+use crate::constants::{LOG_LEVEL_INFO, LOG_LEVEL_PERFORMANCE};
+use crate::utils::log_message;
+
+pub fn decompress_rle(data: &[u8], log_level: &str, verbose: bool) -> Vec<u8> {
+    log_message(
+        LOG_LEVEL_INFO,
+        log_level,
+        "Starting RLE decompression",
+        verbose,
+    );
+
     let mut result = Vec::with_capacity(data.len());
     let mut i = 0;
 
@@ -13,6 +23,17 @@ pub fn decompress_rle(data: &[u8]) -> Vec<u8> {
             i += 1;
         }
     }
+
+    log_message(
+        LOG_LEVEL_PERFORMANCE,
+        log_level,
+        &format!(
+            "RLE decompression complete: original_size={}, decompressed_size={}",
+            data.len(),
+            result.len()
+        ),
+        verbose,
+    );
 
     result
 }

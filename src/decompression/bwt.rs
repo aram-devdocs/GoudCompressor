@@ -1,6 +1,12 @@
-pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
+use crate::constants::{LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_PERFORMANCE};
+use crate::utils::log_message;
+
+pub fn decompress_bwt(input: &[u8], log_level: &str, verbose: bool) -> Vec<u8> {
+    log_message(LOG_LEVEL_INFO, log_level, "Starting BWT decompression", verbose);
+
     // Return early if input is too small
     if input.len() <= 4 {
+        log_message(LOG_LEVEL_DEBUG, log_level, "Input too small for BWT decompression", verbose);
         return input.to_vec();
     }
 
@@ -10,6 +16,7 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
 
     // Safety check for empty compressed data
     if compressed.is_empty() {
+        log_message(LOG_LEVEL_ERROR, log_level, "Compressed data is empty", verbose);
         return input.to_vec();
     }
 
@@ -33,6 +40,7 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
 
     // Safety check for empty MTF data
     if mtf_data.is_empty() {
+        log_message(LOG_LEVEL_ERROR, log_level, "MTF data is empty", verbose);
         return input.to_vec();
     }
 
@@ -43,6 +51,7 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
     for &pos in &mtf_data {
         let pos_usize = pos as usize;
         if pos_usize >= mtf.len() {
+            log_message(LOG_LEVEL_ERROR, log_level, "Invalid MTF index", verbose);
             return input.to_vec(); // Invalid MTF index
         }
         let byte = mtf[pos_usize];
@@ -53,11 +62,13 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
 
     // Safety check for empty BWT data
     if bwt_data.is_empty() {
+        log_message(LOG_LEVEL_ERROR, log_level, "BWT data is empty", verbose);
         return input.to_vec();
     }
 
     // Validate original index
     if original_idx >= bwt_data.len() {
+        log_message(LOG_LEVEL_ERROR, log_level, "Invalid original index in BWT decompression", verbose);
         return input.to_vec();
     }
 
@@ -73,6 +84,7 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
     let mut safety_counter = 0;
     while result.len() < n && safety_counter < n {
         if idx >= table.len() {
+            log_message(LOG_LEVEL_ERROR, log_level, "Invalid index during BWT decompression", verbose);
             return input.to_vec(); // Invalid index
         }
         let (byte, next_idx) = table[idx];
@@ -83,8 +95,20 @@ pub fn decompress_bwt(input: &[u8]) -> Vec<u8> {
 
     // Check if we got all the data
     if result.len() != n {
+        log_message(LOG_LEVEL_ERROR, log_level, "Incomplete BWT decompression", verbose);
         return input.to_vec();
     }
+
+    log_message(
+        LOG_LEVEL_PERFORMANCE,
+        log_level,
+        &format!(
+            "BWT decompression complete: original_size={}, decompressed_size={}",
+            input.len(),
+            result.len()
+        ),
+        verbose,
+    );
 
     result
 }
