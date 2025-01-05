@@ -29,6 +29,8 @@ pub fn log_message(level: &str, current_level: &str, message: &str, verbose: boo
     if level_index <= current_index {
         if verbose || level != LOG_LEVEL_PERFORMANCE {
             log(&format!("[{}] {}", level.to_uppercase(), message));
+        } else if level == LOG_LEVEL_PERFORMANCE {
+            log(&format!("[{}] {}", level.to_uppercase(), message));
         }
     }
 }

@@ -6,7 +6,7 @@ set -e
 # Function to display usage instructions
 usage() {
     echo "Usage: $0 [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save] [--algorithm <lz|rle|delta|bwt|best>]"
-    echo "  --log <level>  Set the log level (none, error, info, debug)"
+    echo "  --log <level>  Set the log level (none, error, info, debug, performance)"
     echo "  --verbose      Enable detailed performance logging"
     echo "  --files        Specify files to test (default: all)"
     echo "  --save         Save the test results to a file"
