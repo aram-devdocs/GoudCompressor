@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 // Simplified node representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum HuffmanNode {
     Leaf(Token),
     Internal(Box<HuffmanNode>, Box<HuffmanNode>),
@@ -10,6 +11,7 @@ pub enum HuffmanNode {
 
 // Simplified tree struct
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct HuffmanTree {
     pub root: HuffmanNode,
 }
@@ -91,6 +93,7 @@ impl HuffmanTree {
 
     /// A simple traversal method that reads the tree structure,
     /// thereby removing the 'fields never read' warnings.
+    #[allow(dead_code)]
     pub fn walk(&self) {
         fn recurse(node: &HuffmanNode) {
             match node {
