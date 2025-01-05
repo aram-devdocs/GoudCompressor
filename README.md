@@ -59,6 +59,31 @@ GoudCompressor uses a combination of compression strategies to achieve optimal r
 
 The library automatically selects the best compression strategy based on the input data, but you can also specify a particular algorithm using the `algorithm` option.
 
+## Compression Strategy
+
+GoudCompressor now uses an advanced multi-strategy compression approach:
+
+1. **Chunked Compression**
+   - Data is split into 32KB chunks for optimal processing
+   - Each chunk is analyzed and compressed independently
+   - Enables parallel processing and better memory usage
+
+2. **Adaptive Chain Compression**
+   - Multiple compression algorithms can be chained for each chunk
+   - Compression chains are limited to 3 algorithms to balance efficiency
+   - Each chunk stores its compression method sequence
+
+3. **Available Algorithms**
+   - LZ + Huffman: For general-purpose compression
+   - RLE: For repeated sequences
+   - Delta: For gradually changing values
+   - BWT: For text with repeating patterns
+
+4. **Smart Algorithm Selection**
+   - Each chunk is analyzed to determine the best compression strategy
+   - Compression is only applied if it provides meaningful benefits
+   - Compression chains are built progressively until diminishing returns
+
 ## Available Compression Algorithms
 
 - `ALGO_UNCOMPRESSED`: Uncompressed

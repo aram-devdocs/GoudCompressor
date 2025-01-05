@@ -7,7 +7,7 @@ use crate::constants::{
 };
 use crate::shared::compression::CompressionResult;
 use crate::utils::{get_log_level, log};
-use strategies::{compress_bwt, compress_delta, compress_lz, compress_rle, try_all_strategies};
+use strategies::{compress_bwt, compress_delta, compress_lz, compress_rle, compress_chunked};
 use wasm_bindgen::JsValue;
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
@@ -18,10 +18,10 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
         .and_then(|val| val.as_string())
         .unwrap_or_else(|| "best".to_string());
 
-    // Early exits for small files or high entropy data
-    if input.len() < MIN_FILE_SIZE || !is_compressible(&input[..input.len().min(1024)]) {
+    // Early exit for small files
+    if input.len() < MIN_FILE_SIZE {
         if log_level == "debug" {
-            log("File too small or high entropy, storing uncompressed");
+            log("File too small, storing uncompressed");
         }
         let mut output = Vec::with_capacity(input.len() + 1);
         output.push(UNCOMPRESSED_FLAG);
@@ -34,7 +34,8 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
         ALGO_DELTA => CompressionResult::Compressed(compress_delta(input), DELTA_FLAG),
         ALGO_LZ_HUFFMAN => CompressionResult::Compressed(compress_lz(input), COMPRESSED_FLAG),
         ALGO_BWT => CompressionResult::Compressed(compress_bwt(input), BWT_FLAG),
-        _ => try_all_strategies(input),
+        // Use chunked compression for "best" mode
+        _ => compress_chunked(input),
     };
 
     match result {
@@ -59,6 +60,7 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     }
 }
 
+#[allow(dead_code)] // Keep this function for future use
 fn is_compressible(sample: &[u8]) -> bool {
     // Simple entropy calculation
     let mut freqs = [0u32; 256];
