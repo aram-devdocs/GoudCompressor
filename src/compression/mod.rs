@@ -3,10 +3,10 @@ pub(crate) mod matcher;
 mod strategies;
 
 use crate::constants::{
-    ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_BWT, COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG, BWT_FLAG, UNCOMPRESSED_FLAG,
+    ALGO_BWT, ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, BWT_FLAG, COMPRESSED_FLAG, DELTA_FLAG, LOG_LEVEL_DEBUG, MIN_FILE_SIZE, RLE_FLAG, UNCOMPRESSED_FLAG
 };
 use crate::shared::compression::CompressionResult;
-use crate::utils::{get_log_level, log};
+use crate::utils::{get_log_level, log_message};
 use strategies::{compress_bwt, compress_delta, compress_lz, compress_rle, compress_chunked};
 use wasm_bindgen::JsValue;
 
@@ -20,9 +20,7 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
 
     // Early exit for small files
     if input.len() < MIN_FILE_SIZE {
-        if log_level == "debug" {
-            log("File too small, storing uncompressed");
-        }
+        log_message(LOG_LEVEL_DEBUG, &log_level, "File too small, storing uncompressed");
         let mut output = Vec::with_capacity(input.len() + 1);
         output.push(UNCOMPRESSED_FLAG);
         output.extend_from_slice(input);
@@ -40,18 +38,14 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
 
     match result {
         CompressionResult::Compressed(data, flag) => {
-            if log_level == "debug" {
-                log(&format!("Using compression method: {:02X}", flag));
-            }
+            log_message(LOG_LEVEL_DEBUG, &log_level, &format!("Using compression method: {:02X}", flag));
             let mut output = Vec::with_capacity(data.len() + 1);
             output.push(flag);
             output.extend(data);
             output
         }
         CompressionResult::Uncompressed(data) => {
-            if log_level == "debug" {
-                log("No effective compression found, storing uncompressed");
-            }
+            log_message(LOG_LEVEL_DEBUG, &log_level, "No effective compression found, storing uncompressed");
             let mut output = Vec::with_capacity(data.len() + 1);
             output.push(UNCOMPRESSED_FLAG);
             output.extend(data);

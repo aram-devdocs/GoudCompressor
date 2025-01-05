@@ -14,4 +14,10 @@ pub const ALGO_RLE: &str = "RLE";
 pub const ALGO_DELTA: &str = "Delta";
 pub const ALGO_BWT: &str = "bwt";
 
+pub const LOG_LEVEL_NONE: &str = "none";
+pub const LOG_LEVEL_ERROR: &str = "error";
+pub const LOG_LEVEL_INFO: &str = "info";
+pub const LOG_LEVEL_DEBUG: &str = "debug";
+pub const LOG_LEVEL_PERFORMANCE: &str = "performance";
+
 pub const MIN_FILE_SIZE: usize = 64;  // Don't compress files smaller than this

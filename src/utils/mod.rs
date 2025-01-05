@@ -1,7 +1,7 @@
 mod logger;
 
 use js_sys::Reflect;
-pub use logger::log;
+pub use logger::log_message;
 use wasm_bindgen::JsValue;
 
 pub fn get_log_level(options: &JsValue) -> String {
