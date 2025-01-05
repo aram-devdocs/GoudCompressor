@@ -30,23 +30,23 @@ This project is a proof-of-concept and may not be suitable for all use cases. Th
 - **.gitignore**  
   Excludes build artifacts and test node_modules.
 
-## Compression Algorithm
+## Compression Algorithms
 
-GoudCompressor has evolved from a simple dictionary-based RLE (Run-Length Encoding) scheme into a more powerful LZ-style algorithm (inspired by how 7-zip handles compression). While not a complete LZMA implementation, this approach typically yields higher compression ratios than basic RLE, especially for longer text files.
+GoudCompressor uses a combination of compression strategies to achieve optimal results. The following algorithms are implemented:
 
 1. **LZ-style Sliding Window**  
     Locates repeating substrings by searching within a sliding window and emits a backreference (distance + length) when a repeat is found.
 
-2. **Run-Length Encoding (RLE) Fallback**  
+2. **Run-Length Encoding (RLE)**  
     If a straightforward repetition (e.g., the same character repeated many times) is discovered, we apply RLE for efficiency.
 
-3. **Dictionary Construction**  
-    A dictionary may still be built for particularly common substrings; these can be referenced using small tokens, reducing output size.
+3. **Delta Encoding**  
+    Encodes the difference between consecutive bytes, which can be effective for certain types of data.
 
-4. **Lossless Decompression**  
-    Every step is fully reversible, ensuring the original data can be reconstructed bit-for-bit.
+4. **Huffman Coding**  
+    Used in conjunction with LZ-style compression to further reduce the size of the compressed data.
 
-Note: For very large inputs or more advanced compression needs, consider adding entropy coding (e.g., Huffman or range coding) on top of these LZ tokens for further size reduction.
+The library automatically selects the best compression strategy based on the input data, but you can also specify a particular algorithm using the `algorithm` option.
 
 ## Usage Instructions
 
@@ -58,12 +58,17 @@ Note: For very large inputs or more advanced compression needs, consider adding 
 
 2. Navigate to the test directory and run tests:  
    ```
-   ./test.sh [--log <level>]
+   ./test.sh [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save] [--algorithm <lz|rle|delta>]
    ```
-   You will see output showing input size, compressed size, and whether the compression is lossless. The optional `--log` parameter can be used to set the log level (none, error, info, debug).
+   You will see output showing input size, compressed size, and whether the compression is lossless. The optional parameters are:
+   - `--log <level>`: Set the log level (none, error, info, debug).
+   - `--verbose`: Enable detailed performance logging.
+   - `--files <all|'filename-path'>`: Specify files to test (default: all).
+   - `--save`: Save the test results to a file.
+   - `--algorithm <lz|rle|delta>`: Specify the compression algorithm to use (default: best).
 
 3. In your own Node.js or web project, import the resulting JavaScript module from /ts-wrapper (e.g., goud_compressor.js). Use the exported functions:
-   - `compress(input: Uint8Array, options: { logLevel: string }) => Uint8Array`
+   - `compress(input: Uint8Array, options: { logLevel: string, algorithm: string }) => Uint8Array`
    - `decompress(input: Uint8Array, options: { logLevel: string }) => Uint8Array`
 
 ## License
