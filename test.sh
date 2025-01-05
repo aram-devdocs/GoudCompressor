@@ -58,4 +58,12 @@ cd test
 
 # Run the test script with Node.js
 echo "Starting the test suite..."
-node test.mjs --log "$LOG_LEVEL" --verbose "$VERBOSE" --files "$FILES" ${SAVE:+--save}
+VERBOSE_FLAG=""
+SAVE_FLAG=""
+if [ "$VERBOSE" = "true" ]; then
+    VERBOSE_FLAG="--verbose"
+fi
+if [ "$SAVE" = "true" ]; then
+    SAVE_FLAG="--save"
+fi
+node test.mjs --log "$LOG_LEVEL" $VERBOSE_FLAG --files "$FILES" $SAVE_FLAG

@@ -156,7 +156,11 @@ async function runTests(logLevel = "none", verbose = false, files = "all", save 
 
   if (save) {
     const dateTime = new Date().toISOString().replace(/[:.]/g, "-");
-    const outputPath = path.resolve(`results-${dateTime}.json`);
+    // create results directory if it doesn't exist
+    if (!fs.existsSync("results")) {
+      fs.mkdirSync("results");
+    }
+    const outputPath = path.resolve(`results/results-${dateTime}.json`);
     fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
     console.log(`Results saved to ${outputPath}`);
   }
@@ -184,6 +188,6 @@ if (args.includes("--help")) {
 const logLevel = args.includes("--log") ? args[args.indexOf("--log") + 1] : "none";
 const verbose = args.includes("--verbose");
 const files = args.includes("--files") ? args[args.indexOf("--files") + 1] : "all";
-const save = args.includes("--save") ? true : false;
+const save = args.includes("--save");  // Simplified boolean flag check
 
 runTests(logLevel, verbose, files, save);
