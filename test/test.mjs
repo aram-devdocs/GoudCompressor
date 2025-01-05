@@ -86,7 +86,7 @@ async function runTests(
     "big_config.json",
     "repeated_data.json",
     // You can include directories here if you like:
-    "test_data_batch_0"  // For example
+    // "test_data_batch_0"  // For example
   ];
 
   // Build the final list of file(s) or directory(ies)
