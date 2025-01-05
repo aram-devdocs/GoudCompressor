@@ -1,14 +1,15 @@
 use crate::constants::{
-    ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_UNCOMPRESSED, COMPRESSED_FLAG, DELTA_FLAG,
-    RLE_FLAG, UNCOMPRESSED_FLAG,
+    ALGO_BWT, ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_UNCOMPRESSED, COMPRESSED_FLAG, DELTA_FLAG, RLE_FLAG, UNCOMPRESSED_FLAG, BWT_FLAG
 };
 mod huff_decode;
 mod lz_huffman;
 mod rle;
 mod delta;
+mod bwt;
 use crate::decompression::lz_huffman::decompress_lz_huffman;
 use crate::decompression::rle::decompress_rle;
 use crate::decompression::delta::decompress_delta;
+use crate::decompression::bwt::decompress_bwt;
 use crate::utils::{get_log_level, log};
 use wasm_bindgen::JsValue;
 
@@ -45,6 +46,12 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
                 log(&format!("Decompressing: {}", ALGO_DELTA));
             }
             decompress_delta(data)
+        }
+        BWT_FLAG => {
+            if log_level == "debug" {
+                log(&format!("Decompressing: {}", ALGO_BWT));
+            }
+            decompress_bwt(data)
         }
         _ => {
             if log_level == "debug" {

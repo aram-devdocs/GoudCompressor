@@ -3,12 +3,11 @@ pub(crate) mod matcher;
 mod strategies;
 
 use crate::constants::{
-    ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG,
-    UNCOMPRESSED_FLAG,
+    ALGO_DELTA, ALGO_LZ_HUFFMAN, ALGO_RLE, ALGO_BWT, COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG, BWT_FLAG, UNCOMPRESSED_FLAG,
 };
 use crate::shared::compression::CompressionResult;
 use crate::utils::{get_log_level, log};
-use strategies::{compress_delta, compress_lz, compress_rle, try_all_strategies};
+use strategies::{compress_bwt, compress_delta, compress_lz, compress_rle, try_all_strategies};
 use wasm_bindgen::JsValue;
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
@@ -34,6 +33,7 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
         ALGO_RLE => CompressionResult::Compressed(compress_rle(input), RLE_FLAG),
         ALGO_DELTA => CompressionResult::Compressed(compress_delta(input), DELTA_FLAG),
         ALGO_LZ_HUFFMAN => CompressionResult::Compressed(compress_lz(input), COMPRESSED_FLAG),
+        ALGO_BWT => CompressionResult::Compressed(compress_bwt(input), BWT_FLAG),
         _ => try_all_strategies(input),
     };
 

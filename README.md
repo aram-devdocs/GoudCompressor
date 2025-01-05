@@ -51,7 +51,10 @@ GoudCompressor uses a combination of compression strategies to achieve optimal r
 3. **Delta Encoding**  
     Encodes the difference between consecutive bytes, which can be effective for certain types of data.
 
-4. **Huffman Coding**  
+4. **Burrows-Wheeler Transform (BWT)**  
+    Performs a reversible transformation that tends to group similar characters together, making the data more compressible.
+
+5. **Huffman Coding**  
     Used in conjunction with LZ-style compression to further reduce the size of the compressed data.
 
 The library automatically selects the best compression strategy based on the input data, but you can also specify a particular algorithm using the `algorithm` option.
@@ -62,6 +65,7 @@ The library automatically selects the best compression strategy based on the inp
 - `ALGO_LZ_HUFFMAN`: LZ+Huffman
 - `ALGO_RLE`: RLE
 - `ALGO_DELTA`: Delta
+- `ALGO_BWT`: BWT (Burrows-Wheeler Transform)
 
 ## Usage Instructions
 
