@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 wasm-bindgen = "0.2.99"
 flate2 = "1.0"
+js-sys = "0.3.76"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

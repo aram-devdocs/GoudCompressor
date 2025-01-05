@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import init, { compress, decompress } from "../ts-wrapper/goud_compressor.js";
 
-async function runTests() {
+async function runTests(logLevel = "none") {
   // Initialize the WASM module
   const wasmPath = path.resolve("../ts-wrapper/goud_compressor_bg.wasm");
   const wasmBuffer = fs.readFileSync(wasmPath);
@@ -34,11 +34,11 @@ async function runTests() {
     console.log("Input size:", inputArray.length);
 
     // Compress
-    const compressed = compress(inputArray);
+    const compressed = compress(inputArray, { logLevel });
     console.log("Compressed size:", compressed.length);
 
     // Decompress
-    const decompressed = decompress(compressed);
+    const decompressed = decompress(compressed, { logLevel });
     console.log("Decompressed size:", decompressed.length);
 
     // Check if compressed is smaller
@@ -78,4 +78,12 @@ async function runTests() {
   }
 }
 
-runTests();
+const args = process.argv.slice(2);
+if (args.includes("--help")) {
+  console.log("Usage: node test.mjs [--log <level>]");
+  console.log("  --log <level>  Set the log level (none, error, info, debug)");
+  process.exit(0);
+}
+
+const logLevel = args[0] === "--log" ? args[1] : "none";
+runTests(logLevel);

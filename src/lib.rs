@@ -1,12 +1,35 @@
 use wasm_bindgen::prelude::*;
+use js_sys::Reflect;
+use wasm_bindgen::JsValue;
 
 // You might tune these constants:
-const WINDOW_SIZE: usize = 4096;   // max distance back
-const MIN_MATCH_LEN: usize = 4;    // only encode matches >= this length
-const MAX_MATCH_LEN: usize = 255;  // simplistic limit for this example
+const WINDOW_SIZE: usize = 4096; // max distance back
+const MIN_MATCH_LEN: usize = 4; // only encode matches >= this length
+const MAX_MATCH_LEN: usize = 255; // simplistic limit for this example
 
 #[wasm_bindgen]
-pub fn compress(input: &[u8]) -> Vec<u8> {
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+
+}
+
+fn get_log_level(options: &JsValue) -> String {
+    Reflect::get(options, &JsValue::from_str("logLevel"))
+        .unwrap_or(JsValue::from_str("none"))
+        .as_string()
+        .unwrap_or("none".to_string())
+}
+
+#[wasm_bindgen]
+pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
+    let log_level = get_log_level(options);
     let mut result = Vec::with_capacity(input.len() / 2); // guess for capacity
     let mut i = 0;
 
@@ -30,7 +53,15 @@ pub fn compress(input: &[u8]) -> Vec<u8> {
             result.push(0);
             result.push(input[i]);
             i += 1;
+        };
+
+        if log_level == "debug" && i % 100 == 0 {
+            log(&format!("Compressing byte {}: {}", i, input[i - 1]));
         }
+    }
+
+    if log_level == "info" || log_level == "debug" {
+        log(&format!("Compression complete. Original size: {}, Compressed size: {}", input.len(), result.len()));
     }
 
     result
@@ -69,7 +100,8 @@ fn find_longest_match(data: &[u8], i: usize) -> (usize, usize) {
 }
 
 #[wasm_bindgen]
-pub fn decompress(input: &[u8]) -> Vec<u8> {
+pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
+    let log_level = get_log_level(options);
     let mut result = Vec::with_capacity(input.len() * 2); // rough guess
     let mut i = 0;
 
@@ -85,7 +117,7 @@ pub fn decompress(input: &[u8]) -> Vec<u8> {
         } else {
             // Backreference
             i += 1; // consume token byte
-            // Next byte = length
+                    // Next byte = length
             let length = input[i] as usize;
             i += 1;
             // Next two bytes = distance (little endian)
@@ -106,6 +138,14 @@ pub fn decompress(input: &[u8]) -> Vec<u8> {
                 }
             }
         }
+
+        if log_level == "debug" && i % 100 == 0 {
+            log(&format!("Decompressing byte {}: {}", i, input[i - 1]));
+        }
+    }
+
+    if log_level == "info" || log_level == "debug" {
+        log(&format!("Decompression complete. Compressed size: {}, Decompressed size: {}", input.len(), result.len()));
     }
 
     result

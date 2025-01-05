@@ -1,7 +1,10 @@
 # GoudCompressor
 
-This repository provides a Rust- and WebAssembly-based compression library for text-heavy data like .txt and .json files. The library aims to significantly reduce file size to help minimize data transfer over the network.
+This repository provides a Rust- and WebAssembly-based compression library for text-heavy data like .txt and .json files. The library aims to significantly reduce file size to help minimize data transfer over the network. By providing a Node library, web developers can easily integrate this compression algorithm into their projects, allowing for smaller payloads and faster load times. The compression algorithm is lossless, meaning the original data can be fully reconstructed after decompression. The project is a proof-of-concept and may not be suitable for all use cases.
 
+## WARNING
+
+This project is a proof-of-concept and may not be suitable for all use cases. The compression algorithm is not optimized for speed and may be slow for large inputs. The compression ratio may vary depending on the input data. Please test the compression algorithm with your data to ensure it meets your requirements. The guarantee of lossless compression is based on the current implementation and may not hold for all inputs. Please use caution when integrating this library into your projects.
 
 ## Project Structure
 
@@ -55,13 +58,13 @@ Note: For very large inputs or more advanced compression needs, consider adding 
 
 2. Navigate to the test directory and run tests:  
    ```
-   ./test.sh
+   ./test.sh [--log <level>]
    ```
-   You will see output showing input size, compressed size, and whether the compression is lossless.
+   You will see output showing input size, compressed size, and whether the compression is lossless. The optional `--log` parameter can be used to set the log level (none, error, info, debug).
 
 3. In your own Node.js or web project, import the resulting JavaScript module from /ts-wrapper (e.g., goud_compressor.js). Use the exported functions:
-   - `compress(input: Uint8Array) => Uint8Array`
-   - `decompress(input: Uint8Array) => Uint8Array`
+   - `compress(input: Uint8Array, options: { logLevel: string }) => Uint8Array`
+   - `decompress(input: Uint8Array, options: { logLevel: string }) => Uint8Array`
 
 ## License
 
