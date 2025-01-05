@@ -22,13 +22,16 @@ pub fn compress_rle(data: &[u8]) -> Vec<u8> {
             while i < data.len() && (i + 1 >= data.len() || data[i] != data[i + 1] || count < 4) {
                 i += 1;
                 count = 1;
-                while i + count < data.len() && data[i + count] == data[i] && count < 255 {
+                while i + count < data.len() && data[i + count] == data[i] && count < 4 {
                     count += 1;
                 }
             }
-            result.push(0xFE); // Literal marker
-            result.push((i - literal_start) as u8); // Length of literals
-            result.extend_from_slice(&data[literal_start..i]);
+            let literal_length = i - literal_start;
+            if literal_length > 0 {
+                result.push(0xFE); // Literal marker
+                result.push(literal_length as u8); // Length of literals
+                result.extend_from_slice(&data[literal_start..i]);
+            }
         }
     }
 
