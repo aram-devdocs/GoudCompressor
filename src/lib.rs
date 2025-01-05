@@ -63,6 +63,20 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
         }
     }
 
+    // Add fallback if compressed is larger than the original
+    if result.len() > input.len() {
+        result.clear();
+        result.push(2); // special token for raw data
+        let len = input.len() as u32;
+        // store length as four bytes
+        result.push((len & 0xFF) as u8);
+        result.push(((len >> 8) & 0xFF) as u8);
+        result.push(((len >> 16) & 0xFF) as u8);
+        result.push(((len >> 24) & 0xFF) as u8);
+        // copy the original data
+        result.extend_from_slice(input);
+    }
+
     if log_level == "info" || log_level == "debug" {
         log(&format!("Compression complete. Original size: {}, Compressed size: {}", input.len(), result.len()));
     }
@@ -114,8 +128,20 @@ pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let mut steps = 0;
 
     while i < input.len() {
-        // Check the token byte.
-        if input[i] == 0 {
+        // Handle raw data token
+        if input[i] == 2 {
+            i += 1;
+            let l1 = input[i] as u32;
+            let l2 = input[i + 1] as u32;
+            let l3 = input[i + 2] as u32;
+            let l4 = input[i + 3] as u32;
+            i += 4;
+            let length = l1 | (l2 << 8) | (l3 << 16) | (l4 << 24);
+            let end = i + length as usize;
+            // copy raw data directly
+            result.extend_from_slice(&input[i..end]);
+            i = end;
+        } else if input[i] == 0 {
             // Literal
             i += 1; // consume token byte
             if i < input.len() {
