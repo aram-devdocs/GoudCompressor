@@ -2,14 +2,19 @@ pub(crate) mod huffman;
 pub(crate) mod matcher;
 mod strategies;
 
-use crate::constants::{MIN_FILE_SIZE, UNCOMPRESSED_FLAG};
+use crate::constants::{COMPRESSED_FLAG, DELTA_FLAG, MIN_FILE_SIZE, RLE_FLAG, UNCOMPRESSED_FLAG};
 use crate::shared::compression::CompressionResult;
 use crate::utils::{get_log_level, log};
-use strategies::try_all_strategies;
+use strategies::{compress_delta, compress_lz, compress_rle, try_all_strategies};
 use wasm_bindgen::JsValue;
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
+
+    let algorithm: String = js_sys::Reflect::get(options, &JsValue::from_str("algorithm"))
+        .ok()
+        .and_then(|val| val.as_string())
+        .unwrap_or_else(|| "best".to_string());
 
     // Early exits for small files or high entropy data
     if input.len() < MIN_FILE_SIZE || !is_compressible(&input[..input.len().min(1024)]) {
@@ -22,7 +27,14 @@ pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
         return output;
     }
 
-    match try_all_strategies(input) {
+    let result = match algorithm.as_str() {
+        "rle" => CompressionResult::Compressed(compress_rle(input), RLE_FLAG),
+        "delta" => CompressionResult::Compressed(compress_delta(input), DELTA_FLAG),
+        "lz" => CompressionResult::Compressed(compress_lz(input), COMPRESSED_FLAG),
+        _ => try_all_strategies(input),
+    };
+
+    match result {
         CompressionResult::Compressed(data, flag) => {
             if log_level == "debug" {
                 log(&format!("Using compression method: {:02X}", flag));

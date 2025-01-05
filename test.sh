@@ -5,11 +5,12 @@ set -e
 
 # Function to display usage instructions
 usage() {
-    echo "Usage: $0 [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save]"
+    echo "Usage: $0 [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save] [--algorithm <lz|rle|delta>]"
     echo "  --log <level>  Set the log level (none, error, info, debug)"
     echo "  --verbose      Enable detailed performance logging"
     echo "  --files        Specify files to test (default: all)"
     echo "  --save         Save the test results to a file"
+    echo "  --algorithm    Specify the compression algorithm to use (default: best)"
     exit 1
 }
 
@@ -23,6 +24,7 @@ LOG_LEVEL="none"
 VERBOSE="false"
 FILES="all"
 SAVE="false"
+ALGORITHM="best"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -40,6 +42,10 @@ while [[ "$#" -gt 0 ]]; do
         ;;
     --save)
         SAVE="true"
+        ;;
+    --algorithm)
+        ALGORITHM="$2"
+        shift
         ;;
     *)
         usage
@@ -66,4 +72,4 @@ fi
 if [ "$SAVE" = "true" ]; then
     SAVE_FLAG="--save"
 fi
-node test.mjs --log "$LOG_LEVEL" $VERBOSE_FLAG --files "$FILES" $SAVE_FLAG
+node test.mjs --log "$LOG_LEVEL" $VERBOSE_FLAG --files "$FILES" $SAVE_FLAG --algorithm "$ALGORITHM"

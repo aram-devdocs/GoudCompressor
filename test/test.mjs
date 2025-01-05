@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import init, { compress, decompress } from "../ts-wrapper/goud_compressor.js";
 
-async function runTests(logLevel = "none", verbose = false, files = "all", save = false) {
+async function runTests(logLevel = "none", verbose = false, files = "all", save = false, algorithm = "best") {
   // Initialize the WASM module
   const wasmPath = path.resolve("../ts-wrapper/goud_compressor_bg.wasm");
   const wasmBuffer = fs.readFileSync(wasmPath);
@@ -59,7 +59,7 @@ async function runTests(logLevel = "none", verbose = false, files = "all", save 
     const startTime = performance.now();
 
     // Compress
-    const compressed = compress(inputArray, { logLevel });
+    const compressed = compress(inputArray, { logLevel, algorithm });
     const compressTime = performance.now();
     console.log("Compressed size:", compressed.length);
 
@@ -199,11 +199,12 @@ function findOutliers(data) {
 }
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
-  console.log("Usage: node test.mjs [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save]");
+  console.log("Usage: node test.mjs [--log <level>] [--verbose] [--files <all|'filename-path'>] [--save] [--algorithm <lz|rle|delta>]");
   console.log("  --log <level>  Set the log level (none, error, info, debug)");
   console.log("  --verbose      Enable detailed performance logging");
   console.log("  --files        Specify files to test (default: all)");
   console.log("  --save         Save the test results to a file");
+  console.log("  --algorithm    Specify the compression algorithm to use (default: best)");
   process.exit(0);
 }
 
@@ -211,5 +212,6 @@ const logLevel = args.includes("--log") ? args[args.indexOf("--log") + 1] : "non
 const verbose = args.includes("--verbose");
 const files = args.includes("--files") ? args[args.indexOf("--files") + 1] : "all";
 const save = args.includes("--save");  // Simplified boolean flag check
+const algorithm = args.includes("--algorithm") ? args[args.indexOf("--algorithm") + 1] : "best";
 
-runTests(logLevel, verbose, files, save);
+runTests(logLevel, verbose, files, save, algorithm);
