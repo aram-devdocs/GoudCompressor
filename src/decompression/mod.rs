@@ -1,63 +1,77 @@
+use crate::constants::{COMPRESSED_FLAG, UNCOMPRESSED_FLAG};
+mod huff_decode;
+use crate::decompression::huff_decode::decode_huffman;
+use crate::utils::{get_log_level, log};
 use wasm_bindgen::JsValue;
-use crate::utils::{log, get_log_level};
 
 pub fn decompress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
-    let mut result = Vec::with_capacity(input.len() * 2);
-    let mut i = 0;
-    let mut steps = 0;
+    if input.is_empty() {
+        return Vec::new();
+    }
 
-    while i < input.len() {
-        if input[i] == 2 {
-            i += 1;
-            let l1 = input[i] as u32;
-            let l2 = input[i + 1] as u32;
-            let l3 = input[i + 2] as u32;
-            let l4 = input[i + 3] as u32;
-            i += 4;
-            let length = l1 | (l2 << 8) | (l3 << 16) | (l4 << 24);
-            let end = i + length as usize;
-            result.extend_from_slice(&input[i..end]);
-            i = end;
-        } else if input[i] == 0 {
-            i += 1;
-            if i < input.len() {
-                result.push(input[i]);
-                i += 1;
-            }
-        } else {
-            i += 1;
-            let length = input[i] as usize;
-            i += 1;
-            let dist_lo = input[i] as u16;
-            let dist_hi = input[i + 1] as u16;
-            let distance = (dist_hi << 8) | dist_lo;
-            i += 2;
+    let flag = input[0];
+    if flag == UNCOMPRESSED_FLAG {
+        // Data stored raw, so just return the remainder
+        if log_level == "info" || log_level == "debug" {
+            log("Detected uncompressed data");
+        }
+        return input[1..].to_vec();
+    }
 
-            let start = result.len().saturating_sub(distance as usize);
-            for j in 0..length {
-                if start + j < result.len() {
-                    result.push(result[start + j]);
-                } else {
-                    result.push(0);
+    if flag == COMPRESSED_FLAG {
+        // Huffman + LZ data
+        if log_level == "info" || log_level == "debug" {
+            log("Detected compressed data, proceeding with Huffman + LZ decompression");
+        }
+
+        // 1. Decode the Huffman tree
+        //    In our placeholder logic, the tree is just 1 byte (0xFF).
+        //    Then the rest is the token stream.
+        let _tree_byte = input[1];
+        let token_data = &input[2..];
+
+        // 2. Decode tokens from the token stream
+        let tokens = decode_huffman(token_data);
+
+        // 3. Reconstruct original bytes from tokens
+        let mut output = Vec::new();
+        for t in tokens {
+            match t {
+                // Just push the literal byte
+                crate::shared::token::Token::Literal(b) => {
+                    output.push(b);
+                }
+                // Copy data from existing output
+                crate::shared::token::Token::Match(offset, length) => {
+                    let offset = offset as usize;
+                    let length = length as usize;
+                    let start = output.len().saturating_sub(offset);
+                    for j in 0..length {
+                        if start + j < output.len() {
+                            output.push(output[start + j]);
+                        } else {
+                            // Edge case (rarely reached unless offset > current size)
+                            output.push(0);
+                        }
+                    }
                 }
             }
         }
 
-        steps += 1;
-
-        if log_level == "debug" && i % 100 == 0 {
-            log(&format!("Decompressing byte {}: {}", i, input[i - 1]));
+        if log_level == "info" || log_level == "debug" {
+            log(&format!(
+                "Decompression complete. Compressed size: {}, Decompressed size: {}",
+                input.len(),
+                output.len()
+            ));
         }
+        return output;
     }
 
-    if log_level == "info" || log_level == "debug" {
-        log(&format!("Decompression complete. Compressed size: {}, Decompressed size: {}", input.len(), result.len()));
-    }
-
+    // If the flag is something else, we can’t decode
     if log_level == "debug" {
-        log(&format!("Decompression steps: {}", steps));
+        log("Unknown compression flag found; returning input directly");
     }
-
-    result
+    input.to_vec()
 }

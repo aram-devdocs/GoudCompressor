@@ -2,6 +2,7 @@ mod utils;
 mod compression;
 mod decompression;
 mod constants;
+mod shared;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;

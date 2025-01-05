@@ -1,61 +1,48 @@
-mod matcher;
-
-use crate::constants::MIN_MATCH_LEN;
-use crate::utils::{get_log_level, log};
 use wasm_bindgen::JsValue;
+mod huffman;
+mod lz_tokenize;
+mod matcher;
+use crate::compression::huffman::{build_huffman_tree, encode_tokens};
+use crate::compression::lz_tokenize::lz_tokenize;
+use crate::constants::{COMPRESSED_FLAG, UNCOMPRESSED_FLAG};
+use crate::utils::{get_log_level, log};
 
 pub fn compress(input: &[u8], options: &JsValue) -> Vec<u8> {
     let log_level = get_log_level(options);
-    let mut result = Vec::with_capacity(input.len() / 2);
-    let mut i = 0;
-    let mut steps = 0;
 
-    while i < input.len() {
-        let (best_offset, best_len) = matcher::find_longest_match(input, i);
+    // 1. Convert input bytes into tokens via LZ logic
+    let tokens = lz_tokenize(input);
 
-        if best_len >= MIN_MATCH_LEN {
-            result.push(1);
-            result.push(best_len as u8);
-            let dist = (best_offset & 0xFFFF) as u16;
-            result.push(dist as u8);
-            result.push((dist >> 8) as u8);
+    // 2. Build a Huffman tree for the tokens
+    let tree = build_huffman_tree(&tokens);
 
-            i += best_len;
-        } else {
-            result.push(0);
-            result.push(input[i]);
-            i += 1;
-        };
+    // 3. Encode the tokens using the Huffman tree
+    let encoded_tokens = encode_tokens(&tokens, &tree);
 
-        steps += 1;
+    // 4. Construct final compressed buffer
+    //    - We'll store the Huffman tree, then the encoded bits
+    let mut compressed_data = tree.serialize(); // <-- Tree for decompression
+    compressed_data.extend_from_slice(&encoded_tokens); // <-- Encoded token stream
 
-        if log_level == "debug" && i % 100 == 0 {
-            log(&format!("Compressing byte {}: {}", i, input[i - 1]));
-        }
-    }
-
-    if result.len() > input.len() {
-        result.clear();
-        result.push(2);
-        let len = input.len() as u32;
-        result.push((len & 0xFF) as u8);
-        result.push(((len >> 8) & 0xFF) as u8);
-        result.push(((len >> 16) & 0xFF) as u8);
-        result.push(((len >> 24) & 0xFF) as u8);
+    // 5. Check if compressed is actually smaller
+    //    - +1 for the “compressed or not” flag
+    if compressed_data.len() + 1 >= input.len() {
+        // Fallback: store data uncompressed
+        let mut result = Vec::with_capacity(input.len() + 1);
+        result.push(UNCOMPRESSED_FLAG);
         result.extend_from_slice(input);
+        if log_level == "info" || log_level == "debug" {
+            log("Compressed result was bigger; storing uncompressed data");
+        }
+        result
+    } else {
+        // Store data compressed
+        let mut result = Vec::with_capacity(compressed_data.len() + 1);
+        result.push(COMPRESSED_FLAG);
+        result.extend_from_slice(&compressed_data);
+        if log_level == "info" || log_level == "debug" {
+            log("Data successfully compressed with Huffman + LZ");
+        }
+        result
     }
-
-    if log_level == "info" || log_level == "debug" {
-        log(&format!(
-            "Compression complete. Original size: {}, Compressed size: {}",
-            input.len(),
-            result.len()
-        ));
-    }
-
-    if log_level == "debug" {
-        log(&format!("Compression steps: {}", steps));
-    }
-
-    result
 }
